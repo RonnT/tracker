@@ -5,8 +5,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.location.Location;
 import android.os.BatteryManager;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -17,9 +17,15 @@ import com.google.android.gms.location.LocationServices;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import jp.co.skybus.tracker.helper.PrefsHelper;
+import jp.co.skybus.tracker.helper.Utilities;
+import jp.co.skybus.tracker.model.Info;
 
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, com.google.android.gms.location.LocationListener {
 
@@ -37,15 +43,22 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private TextView mUpdateTv;
     private TextView mProviderTv;
 
+    private String mImei;
+    private boolean mIsCharging;
+    private int mBatPercentage;
+
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
     private Location mCurrentLocation;
     private Intent mBatteryStatus;
     private IntentFilter ifilter;
     private Timer mTimer = new Timer();
-    private TrackerTimerTask mTimerTask;
+    private AddInfoTimerTask mTimerTask;
+    private SendDataTimerTask mDataTimerTask;
 
     private long lastTimeStamp;
+
+    private List<Info> mInfoList = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,8 +71,11 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         connect();
 
         ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        mTimerTask = new TrackerTimerTask();
-        mTimer.schedule(mTimerTask, 0, 3000);
+        mTimerTask = new AddInfoTimerTask();
+        mTimer.schedule(mTimerTask, 0, (3000));
+
+        mDataTimerTask = new SendDataTimerTask();
+        mTimer.schedule(mDataTimerTask, 0, (PrefsHelper.getInstance().getSendingInterval()*1000));
     }
 
     private void initFields(){
@@ -80,7 +96,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private void setData(){
         TelephonyManager telephonyManager = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.getDeviceId();
-        mImeiTv.setText(telephonyManager.getDeviceId());
+        mImei = telephonyManager.getDeviceId();
+        mImeiTv.setText(mImei);
     }
 
     private void buildGoogleApiClient() {
@@ -128,7 +145,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private void updateUI() {
         mLatTv.setText(String.valueOf(mCurrentLocation.getLatitude()));
         mLngTv.setText(String.valueOf(mCurrentLocation.getLongitude()));
-        mTimestampTv.setText(String.valueOf(mCurrentLocation.getTime()));
+        mTimestampTv.setText(String.valueOf(mCurrentLocation.getTime()/1000));
         mDateTimeTv.setText(getDateTime(mCurrentLocation.getTime()));
         mProviderTv.setText(mCurrentLocation.getProvider());
         mSpeedTv.setText(String.valueOf((int) mCurrentLocation.getSpeed()));
@@ -139,14 +156,14 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         int scale = mBatteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
 
         float batteryPct = level / (float)scale;
-        int batteryPercentage = (int) (batteryPct * 100);
+        mBatPercentage = (int) (batteryPct * 100);
 
-        mBatteryTv.setText(String.valueOf(batteryPercentage));
-        boolean isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+        mBatteryTv.setText(String.valueOf(mBatPercentage));
+        mIsCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
                 status == BatteryManager.BATTERY_STATUS_FULL;
-        mChargingTv.setText(isCharging+"");
-        mUpdateTv.setText(String.valueOf((mCurrentLocation.getTime() - lastTimeStamp)/1000));
-        lastTimeStamp = mCurrentLocation.getTime();
+        mChargingTv.setText(String.valueOf(mIsCharging));
+        mUpdateTv.setText(String.valueOf((mCurrentLocation.getTime()/1000) - lastTimeStamp));
+        lastTimeStamp = mCurrentLocation.getTime()/1000;
         //mSatTv.setText(mCurrentLocation.getExtras());
     }
 
@@ -161,15 +178,39 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         }
     }
 
-    private void showToast(){
-        String toast = mCurrentLocation != null ? mCurrentLocation.toString(): "null";
-        Toast.makeText(MainActivity.this, toast, Toast.LENGTH_SHORT).show();
+    private Info generateInfo(){
+        Info info = new Info();
+        info.setImei(mImei);
+        info.setTimestamp(mCurrentLocation != null ? mCurrentLocation.getTime()/1000 :
+                Utilities.getCurrentTimestamp());
+        info.setLat(mCurrentLocation != null ? mCurrentLocation.getLatitude() : 0);
+        info.setLng(mCurrentLocation != null ? mCurrentLocation.getLongitude() : 0);
+        info.setCharging(mIsCharging);
+        info.setBattery(mBatPercentage);
+        info.setSpeed(mCurrentLocation != null ? mCurrentLocation.getSpeed() : 0);
+        return info;
     }
 
-    private class TrackerTimerTask extends TimerTask {
+    private void showToast(){
+        Toast.makeText(MainActivity.this, String.valueOf(mInfoList.size()), Toast.LENGTH_SHORT).show();
+    }
+
+    private class SendDataTimerTask extends TimerTask{
 
         @Override
         public void run() {
+            List<Info> tempList = new ArrayList<>();
+            tempList.addAll(mInfoList);
+            mInfoList.removeAll(tempList);
+            Info.saveAll(tempList);
+        }
+    }
+
+    private class AddInfoTimerTask extends TimerTask {
+
+        @Override
+        public void run() {
+            mInfoList.add(generateInfo());
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
