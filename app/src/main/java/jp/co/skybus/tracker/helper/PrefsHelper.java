@@ -111,7 +111,7 @@ public class PrefsHelper {
     }
 
     public int getSendingInterval(){
-        return getInt(SEND_INTERVAL, CONST.DEFAULT_SENDING_INTERVAL);
+        return getInt(SEND_INTERVAL, CONST.DEFAULT_SENDING_DATA_INTERVAL);
     }
 }
 

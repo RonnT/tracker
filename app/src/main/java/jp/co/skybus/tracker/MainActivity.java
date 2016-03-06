@@ -1,11 +1,14 @@
 package jp.co.skybus.tracker;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.location.Location;
 import android.os.BatteryManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.telephony.TelephonyManager;
 import android.widget.TextView;
@@ -23,9 +26,17 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import jp.co.skybus.tracker.api.Api;
+import jp.co.skybus.tracker.helper.Logger;
 import jp.co.skybus.tracker.helper.PrefsHelper;
 import jp.co.skybus.tracker.helper.Utilities;
+import jp.co.skybus.tracker.model.DefaultResponseWrapper;
 import jp.co.skybus.tracker.model.Info;
+import jp.co.skybus.tracker.model.InfoWrapper;
+import jp.co.skybus.tracker.service.TrackerService;
+import retrofit.Callback;
+import retrofit.RetrofitError;
+import retrofit.client.Response;
 
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, com.google.android.gms.location.LocationListener {
 
@@ -53,17 +64,45 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private Intent mBatteryStatus;
     private IntentFilter ifilter;
     private Timer mTimer = new Timer();
-    private AddInfoTimerTask mTimerTask;
+    private AddInfoTimerTask mTimerTask = new AddInfoTimerTask();
     private SendDataTimerTask mDataTimerTask;
+
+    private TrackerService mService;
+
+    private boolean isNetworkTrouble;
+
+    private int mCurrentPeriod = 1000;
 
     private long lastTimeStamp;
 
     private List<Info> mInfoList = new ArrayList<>();
 
+    private ServiceConnection mServiceConnection;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        Intent serviceIntent = new Intent(this, TrackerService.class);
+
+        if (!Utilities.isServiceRunning()) startService(serviceIntent);
+
+        mServiceConnection = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+                Logger.d("MainActivity onServiceConnected");
+                mService = ((TrackerService.TrackerBinder) iBinder).getService();
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName componentName) {
+                Logger.d("MainActivity onServiceDisconnected");
+                mService = null;
+            }
+        };
+        bindService(serviceIntent, mServiceConnection, BIND_AUTO_CREATE);
+
         initFields();
         setData();
         buildGoogleApiClient();
@@ -71,11 +110,20 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         connect();
 
         ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        mTimerTask = new AddInfoTimerTask();
-        mTimer.schedule(mTimerTask, 0, (3000));
+
+        startUpdate();
 
         mDataTimerTask = new SendDataTimerTask();
-        mTimer.schedule(mDataTimerTask, 0, (PrefsHelper.getInstance().getSendingInterval()*1000));
+        mTimer.schedule(mDataTimerTask,
+                (PrefsHelper.getInstance().getSendingInterval() * 1000),
+                (PrefsHelper.getInstance().getSendingInterval() * 1000));
+    }
+
+    private void startUpdate(){
+        mTimerTask.cancel();
+        mTimerTask = new AddInfoTimerTask();
+        Logger.d(String.valueOf(mCurrentPeriod));
+        mTimer.schedule(mTimerTask, mCurrentPeriod, mCurrentPeriod);
     }
 
     private void initFields(){
@@ -139,6 +187,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     @Override
     public void onLocationChanged(Location location) {
         mCurrentLocation = location;
+        int mNeededPeriod = mCurrentLocation.getSpeed() < CONST.FAST_PERIOD_UPDATE_SPEED ?
+                CONST.SLOW_COLLECT_DATA_PERIOD : CONST.FAST_COLLECT_DATA_PERIOD;
+        if (mCurrentPeriod != mNeededPeriod) {
+            mCurrentPeriod = mNeededPeriod;
+            startUpdate();
+        }
         updateUI();
     }
 
@@ -148,7 +202,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         mTimestampTv.setText(String.valueOf(mCurrentLocation.getTime()/1000));
         mDateTimeTv.setText(getDateTime(mCurrentLocation.getTime()));
         mProviderTv.setText(mCurrentLocation.getProvider());
-        mSpeedTv.setText(String.valueOf((int) mCurrentLocation.getSpeed()));
+        mSpeedTv.setText(String.valueOf((int) (mCurrentLocation.getSpeed()*3.6f)));
 
         mBatteryStatus = getApplicationContext().registerReceiver(null, ifilter);
         int status = mBatteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
@@ -178,16 +232,16 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         }
     }
 
-    private Info generateInfo(){
+    private Info generateInfo() {
         Info info = new Info();
         info.setImei(mImei);
-        info.setTimestamp(mCurrentLocation != null ? mCurrentLocation.getTime()/1000 :
+        info.setTimestamp(mCurrentLocation != null ? mCurrentLocation.getTime() / 1000 :
                 Utilities.getCurrentTimestamp());
         info.setLat(mCurrentLocation != null ? mCurrentLocation.getLatitude() : 0);
         info.setLng(mCurrentLocation != null ? mCurrentLocation.getLongitude() : 0);
         info.setCharging(mIsCharging);
         info.setBattery(mBatPercentage);
-        info.setSpeed(mCurrentLocation != null ? mCurrentLocation.getSpeed() : 0);
+        info.setSpeed(mCurrentLocation != null ? mCurrentLocation.getSpeed()*3.6f : 0);
         return info;
     }
 
@@ -199,11 +253,49 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
         @Override
         public void run() {
-            List<Info> tempList = new ArrayList<>();
-            tempList.addAll(mInfoList);
-            mInfoList.removeAll(tempList);
-            Info.saveAll(tempList);
+            final List<Info> freshInfoList = new ArrayList<>();
+            freshInfoList.addAll(mInfoList);
+            mInfoList.removeAll(freshInfoList);
+
+            if (!isNetworkTrouble && freshInfoList.isEmpty()) return;
+
+            if (Utilities.isNetworkAvailable()){
+                tryToSend(freshInfoList);
+            } else {
+                isNetworkTrouble = true;
+                Info.saveAll(freshInfoList);
+            }
         }
+    }
+
+    private void tryToSend(final List<Info> pItemList){
+        InfoWrapper infoWrapper = new InfoWrapper();
+        final List<Info> storedInfoList = new ArrayList<>();
+        infoWrapper.addList(pItemList);
+        if (isNetworkTrouble) {
+            storedInfoList.addAll(Info.getAll());
+            infoWrapper.addList(storedInfoList);
+        }
+
+        Api.sendData(infoWrapper, new Callback<DefaultResponseWrapper>() {
+            @Override
+            public void success(DefaultResponseWrapper defaultResponseWrapper, Response response) {
+                isNetworkTrouble = false;
+                if (!storedInfoList.isEmpty()) Info.deleteAll(storedInfoList);
+            }
+
+            @Override
+            public void failure(RetrofitError error) {
+                isNetworkTrouble = true;
+                Info.saveAll(pItemList);
+            }
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        unbindService(mServiceConnection);
+        super.onDestroy();
     }
 
     private class AddInfoTimerTask extends TimerTask {
@@ -211,12 +303,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         @Override
         public void run() {
             mInfoList.add(generateInfo());
-            runOnUiThread(new Runnable() {
+            /*runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     showToast();
                 }
-            });
+            });*/
         }
     }
 }

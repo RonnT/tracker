@@ -17,7 +17,7 @@ import jp.co.skybus.tracker.MyApp;
 @DatabaseTable(tableName = "info")
 public class Info {
 
-    @DatabaseField(generatedId = true)
+    @DatabaseField(generatedId = true, allowGeneratedIdInsert = true)
     private int id;
 
     @DatabaseField
@@ -49,6 +49,15 @@ public class Info {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public static List<Info> getAll() {
+        try {
+            return sDao.queryForAll();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public void save(Dao<Info, Integer> pDao) throws SQLException {
