@@ -8,6 +8,9 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import jp.co.skybus.tracker.R;
 import jp.co.skybus.tracker.helper.Logger;
 
@@ -18,6 +21,11 @@ public class TrackerService extends Service {
 
     private Location mCurrentLocation;
     private TrackerBinder binder = new TrackerBinder();
+
+    private int mCurrentPeriod = 1000;
+
+    private AddInfoTimerTask mTimerTask = new AddInfoTimerTask();
+    private Timer mTimer = new Timer();
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -46,6 +54,7 @@ public class TrackerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Logger.d("Service: onStartCommand");
+        startUpdate();
         return START_STICKY;
     }
 
@@ -69,4 +78,27 @@ public class TrackerService extends Service {
             return TrackerService.this;
         }
     }
+
+    private void startUpdate(){
+        mTimerTask.cancel();
+        mTimerTask = new AddInfoTimerTask();
+        Logger.d("TrackerService: measurementPeriod - " + String.valueOf(mCurrentPeriod));
+        mTimer.schedule(mTimerTask, mCurrentPeriod, mCurrentPeriod);
+    }
+
+    private class AddInfoTimerTask extends TimerTask {
+
+        @Override
+        public void run() {
+            Logger.d("TrackerService measurement timer task");
+            //mInfoList.add(generateInfo());
+            /*runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    showToast();
+                }
+            });*/
+        }
+    }
+
 }
