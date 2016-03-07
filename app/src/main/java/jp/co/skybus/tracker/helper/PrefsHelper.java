@@ -98,20 +98,12 @@ public class PrefsHelper {
         return getInt(LOC_THRESHOLD, CONST.DEFAULT_LOCATION_CHANGE_THRESHOLD);
     }
 
-    public void setBatteryChangeThreshold(int pPercent){
-        putInt(BAT_THRESHOLD, pPercent);
-    }
-
-    public int getBatteryChangeThreshold(){
-        return getInt(BAT_THRESHOLD, CONST.DEFAULT_BATTERY_CHANGE_THRESHOLD);
-    }
-
     public void setSendingInterval(int pSeconds){
-        putInt(SEND_INTERVAL, pSeconds);
+        putInt(SEND_INTERVAL, pSeconds*1000);
     }
 
     public int getSendingInterval(){
-        return getInt(SEND_INTERVAL, CONST.DEFAULT_SENDING_DATA_INTERVAL);
+        return getInt(SEND_INTERVAL, CONST.DEFAULT_SENDING_TIME_THRESHOLD*1000);
     }
 }
 

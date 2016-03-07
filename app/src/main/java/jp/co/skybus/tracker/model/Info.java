@@ -21,7 +21,7 @@ public class Info {
     private int id;
 
     @DatabaseField
-    private String imei;
+    private String ime;
 
     @DatabaseField
     private double lat;
@@ -30,16 +30,25 @@ public class Info {
     private double lng;
 
     @DatabaseField()
-    private long timestamp;
+    private long time;
 
     @DatabaseField
     private float speed;
 
     @DatabaseField
-    private boolean charging;
+    private boolean charge;
 
     @DatabaseField
-    private int battery;
+    private float battery;
+
+    @DatabaseField
+    private float accuracy;
+
+    @DatabaseField
+    private int sat;
+
+    @DatabaseField
+    private String provider;
 
     private static Dao<Info, Integer> sDao;
 
@@ -106,12 +115,12 @@ public class Info {
         return true;
     }
 
-    public String getImei() {
-        return imei;
+    public String getIme() {
+        return ime;
     }
 
-    public void setImei(String imei) {
-        this.imei = imei;
+    public void setIme(String ime) {
+        this.ime = ime;
     }
 
     public double getLat() {
@@ -130,12 +139,12 @@ public class Info {
         this.lng = lng;
     }
 
-    public long getTimestamp() {
-        return timestamp;
+    public long getTime() {
+        return time;
     }
 
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
+    public void setTime(long time) {
+        this.time = time;
     }
 
     public float getSpeed() {
@@ -146,19 +155,43 @@ public class Info {
         this.speed = speed;
     }
 
-    public boolean isCharging() {
-        return charging;
+    public boolean isCharge() {
+        return charge;
     }
 
-    public void setCharging(boolean charging) {
-        this.charging = charging;
+    public void setCharge(boolean charge) {
+        this.charge = charge;
     }
 
-    public int getBattery() {
+    public float getBattery() {
         return battery;
     }
 
-    public void setBattery(int battery) {
+    public void setBattery(float battery) {
         this.battery = battery;
+    }
+
+    public float getAccuracy() {
+        return accuracy;
+    }
+
+    public void setAccuracy(float accuracy) {
+        this.accuracy = accuracy;
+    }
+
+    public int getSat() {
+        return sat;
+    }
+
+    public void setSat(int sat) {
+        this.sat = sat;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
     }
 }

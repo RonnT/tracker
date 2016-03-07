@@ -5,12 +5,13 @@ import android.util.Log;
 import com.facebook.stetho.okhttp.StethoInterceptor;
 import com.squareup.okhttp.OkHttpClient;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import jp.co.skybus.tracker.api.service.ApiService;
 import jp.co.skybus.tracker.helper.PrefsHelper;
 import jp.co.skybus.tracker.model.DefaultResponseWrapper;
-import jp.co.skybus.tracker.model.InfoWrapper;
+import jp.co.skybus.tracker.model.Info;
 import retrofit.Callback;
 import retrofit.RestAdapter;
 import retrofit.client.OkClient;
@@ -71,7 +72,7 @@ public class Api {
         return adapter.create(serviceClass);
     }
 
-    public static void sendData(InfoWrapper pData, Callback<DefaultResponseWrapper> pCallback){
+    public static void sendData(List<Info> pData, Callback<DefaultResponseWrapper> pCallback){
         sApiService.sendData(pData, pCallback);
     }
 
