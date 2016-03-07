@@ -76,6 +76,10 @@ public class Api {
         sApiService.sendData(pData, pCallback);
     }
 
+    public static void refreshApiUrl(){
+        sApiService = createService(ApiService.class, PrefsHelper.getInstance().getServerAddress());
+    }
+
 /*
     public static void getCurrentRegionId(double pLatitude, double pLongitude, Callback<RegionIdWrapper> pCallback) {
         Map<String, String> query = new HashMap<>();

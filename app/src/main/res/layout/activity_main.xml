@@ -141,25 +141,6 @@
                 android:text="Satellites" />
 
             <TextView
-                android:id="@+id/satellites_tv"
-                android:layout_marginLeft="8dp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Satellites in use" />
-
-            <TextView
                 android:id="@+id/satellites_used_tv"
                 android:layout_marginLeft="8dp"
                 android:layout_width="wrap_content"

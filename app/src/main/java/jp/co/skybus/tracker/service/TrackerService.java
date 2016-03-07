@@ -80,6 +80,7 @@ public class TrackerService extends Service implements LocationListener, GpsStat
     }
 
     public void addUpdateRequests() {
+        Logger.d("Tracker service: addUpdateRequests()");
         mLocationManager.removeUpdates(this);
         mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000,
                 PrefsHelper.getInstance().getLocChangeThreshold(), this);
@@ -149,11 +150,13 @@ public class TrackerService extends Service implements LocationListener, GpsStat
         Api.sendData(sendingList, new Callback<DefaultResponseWrapper>() {
             @Override
             public void success(DefaultResponseWrapper defaultResponseWrapper, Response response) {
+                Logger.d("Retrofit success");
                 if (isHasCachedData) sendCachedData();
             }
 
             @Override
             public void failure(RetrofitError error) {
+                Logger.d("Retrofit failure");
                 Info.saveAll(sendingList);
                 isHasCachedData = true;
             }
