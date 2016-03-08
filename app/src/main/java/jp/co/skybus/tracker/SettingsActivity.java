@@ -53,7 +53,7 @@ public class SettingsActivity extends AppCompatActivity {
         mServiceConnection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                ((TrackerService.TrackerBinder) iBinder).getService().addUpdateRequests();
+                ((TrackerService.TrackerBinder) iBinder).getService().startUpdateLocation();
                 Api.refreshApiUrl();
                 Toast.makeText(SettingsActivity.this, "Settings saved", Toast.LENGTH_LONG).show();
                 unbindService(mServiceConnection);
@@ -61,7 +61,6 @@ public class SettingsActivity extends AppCompatActivity {
 
             @Override
             public void onServiceDisconnected(ComponentName componentName) {
-
             }
         };
 

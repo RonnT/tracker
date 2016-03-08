@@ -23,6 +23,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import jp.co.skybus.tracker.CONST;
+import jp.co.skybus.tracker.MainActivity;
 import jp.co.skybus.tracker.R;
 import jp.co.skybus.tracker.api.Api;
 import jp.co.skybus.tracker.helper.Logger;
@@ -42,9 +43,9 @@ public class TrackerService extends Service implements LocationListener, GpsStat
     private Location mCurrentLocation;
     private TrackerBinder binder = new TrackerBinder();
     private Intent mBatteryStatus;
-    private int mCurrentPeriod = 1000;
+    private int mCurrentPeriod = 15000;
 
-    private AddInfoTimerTask mTimerTask = new AddInfoTimerTask();
+    private SendingTimerTask mTimerTask = new SendingTimerTask();
     private Timer mTimer = new Timer();
 
     private int mUsedSatellites;
@@ -63,7 +64,7 @@ public class TrackerService extends Service implements LocationListener, GpsStat
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         mLocationManager.addGpsStatusListener(this);
 
-        addUpdateRequests();
+        startUpdateLocation();
 
         TelephonyManager telephonyManager = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.getDeviceId();
@@ -79,19 +80,29 @@ public class TrackerService extends Service implements LocationListener, GpsStat
         startForeground(221, notification);
     }
 
-    public void addUpdateRequests() {
-        Logger.d("Tracker service: addUpdateRequests()");
+    public void startUpdateLocation() {
+        Logger.d("Tracker service: startUpdateLocation()");
+        stopUpdateLocation();
+
+        if (mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
+            mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000,
+                    PrefsHelper.getInstance().getLocChangeThreshold(), this);
+        }
+
+        if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000,
+                    PrefsHelper.getInstance().getLocChangeThreshold(), this);
+        }
+    }
+
+    private void stopUpdateLocation(){
         mLocationManager.removeUpdates(this);
-        mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000,
-                PrefsHelper.getInstance().getLocChangeThreshold(), this);
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000,
-                PrefsHelper.getInstance().getLocChangeThreshold(), this);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Logger.d("Service: onStartCommand");
-        startUpdate();
+        startSendingTask();
         return START_STICKY;
     }
 
@@ -102,7 +113,7 @@ public class TrackerService extends Service implements LocationListener, GpsStat
                 PrefsHelper.getInstance().getSendingInterval() : CONST.FAST_COLLECT_DATA_INTERVAL;
         if (mCurrentPeriod != mNeededPeriod) {
             mCurrentPeriod = mNeededPeriod;
-            startUpdate();
+            startSendingTask();
         }
     }
 
@@ -110,7 +121,9 @@ public class TrackerService extends Service implements LocationListener, GpsStat
     public void onStatusChanged(String s, int i, Bundle bundle) {}
 
     @Override
-    public void onProviderEnabled(String s) {}
+    public void onProviderEnabled(String s) {
+
+    }
 
     @Override
     public void onProviderDisabled(String s) {}
@@ -136,11 +149,20 @@ public class TrackerService extends Service implements LocationListener, GpsStat
         }
     }
 
-    private void startUpdate(){
-        mTimerTask.cancel();
-        mTimerTask = new AddInfoTimerTask();
+    private void startSendingTask(){
+        stopSendingTask();
+        mTimerTask = new SendingTimerTask();
         Logger.d("TrackerService: send_info_period - " + String.valueOf(mCurrentPeriod));
         mTimer.schedule(mTimerTask, mCurrentPeriod, mCurrentPeriod);
+    }
+
+    private void stopSendingTask(){
+        mTimerTask.cancel();
+    }
+
+    public void restartUpdates(){
+        startUpdateLocation();
+        startSendingTask();
     }
 
     private void tryToSend(Info pInfo){
@@ -157,8 +179,15 @@ public class TrackerService extends Service implements LocationListener, GpsStat
             @Override
             public void failure(RetrofitError error) {
                 Logger.d("Retrofit failure");
-                Info.saveAll(sendingList);
-                isHasCachedData = true;
+                DefaultResponseWrapper response = (DefaultResponseWrapper) error.getBody();
+                if (response != null && response.getCode() == CONST.FORBIDDEN_ERROR_CODE) {
+                        stopUpdateLocation();
+                        stopSendingTask();
+                        openMainActivity();
+                } else {
+                    Info.saveAll(sendingList);
+                    isHasCachedData = true;
+                }
             }
         });
     }
@@ -181,6 +210,13 @@ public class TrackerService extends Service implements LocationListener, GpsStat
             public void failure(RetrofitError error) {
             }
         });
+    }
+
+    private void openMainActivity(){
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
     }
 
     private Info generateInfo() {
@@ -241,7 +277,7 @@ public class TrackerService extends Service implements LocationListener, GpsStat
         Logger.d("Service: onTaskRemoved");
     }
 
-    private class AddInfoTimerTask extends TimerTask {
+    private class SendingTimerTask extends TimerTask {
 
         @Override
         public void run() {

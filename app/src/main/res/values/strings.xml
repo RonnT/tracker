@@ -5,4 +5,5 @@
     <string name="location_changes_threshold">Location changes threshold(meters)</string>
     <string name="max_sending_interval">Max time interval(sec)</string>
     <string name="save_button_title">Save</string>
+    <string name="restart_button_title">Restart</string>
 </resources>

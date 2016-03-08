@@ -8,6 +8,7 @@ import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 
 import java.text.DateFormat;
@@ -111,6 +112,10 @@ public class MainActivity extends AppCompatActivity {
             lastTimeStamp = mLastInfo.getTime();
         }
         mSatUsedTv.setText(String.valueOf(mLastInfo.getSat()));
+    }
+
+    public void onRestartClick(View v){
+        if (isBinded) mService.restartUpdates();
     }
 
     private String getDateTime(long pTimestamp){
