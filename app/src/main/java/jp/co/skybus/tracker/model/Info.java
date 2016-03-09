@@ -17,9 +17,6 @@ import jp.co.skybus.tracker.MyApp;
 @DatabaseTable(tableName = "info")
 public class Info {
 
-    @DatabaseField(generatedId = true, allowGeneratedIdInsert = true)
-    private int id;
-
     @DatabaseField
     private String ime;
 
@@ -29,7 +26,7 @@ public class Info {
     @DatabaseField
     private double lng;
 
-    @DatabaseField()
+    @DatabaseField(generatedId = true)
     private long time;
 
     @DatabaseField

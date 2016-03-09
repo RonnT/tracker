@@ -222,8 +222,7 @@ public class TrackerService extends Service implements LocationListener, GpsStat
     private Info generateInfo() {
         Info info = new Info();
         info.setIme(mIme);
-        info.setTime(mCurrentLocation != null ? mCurrentLocation.getTime() :
-                Utilities.getCurrentTimestamp());
+        info.setTime(Utilities.getCurrentTimestamp());
         info.setLat(mCurrentLocation != null ? mCurrentLocation.getLatitude() : 0);
         info.setLng(mCurrentLocation != null ? mCurrentLocation.getLongitude() : 0);
 
