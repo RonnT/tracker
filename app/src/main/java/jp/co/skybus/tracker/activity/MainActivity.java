@@ -1,4 +1,4 @@
-package jp.co.skybus.tracker;
+package jp.co.skybus.tracker.activity;
 
 import android.content.ComponentName;
 import android.content.Intent;
@@ -17,7 +17,8 @@ import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import jp.co.skybus.tracker.helper.Logger;
+import jp.co.skybus.tracker.CONST;
+import jp.co.skybus.tracker.R;
 import jp.co.skybus.tracker.helper.Utilities;
 import jp.co.skybus.tracker.model.Info;
 import jp.co.skybus.tracker.service.TrackerService;
@@ -60,7 +61,6 @@ public class MainActivity extends AppCompatActivity {
         mServiceConnection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-                Logger.d("MainActivity onServiceConnected");
                 mService = ((TrackerService.TrackerBinder) iBinder).getService();
                 startUpdate();
                 isBinded = true;
@@ -68,7 +68,6 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onServiceDisconnected(ComponentName componentName) {
-                Logger.d("MainActivity onServiceDisconnected");
                 isBinded = false;
                 mTimerTask.cancel();
             }
@@ -79,7 +78,6 @@ public class MainActivity extends AppCompatActivity {
     private void startUpdate(){
         mTimerTask.cancel();
         mTimerTask = new AddInfoTimerTask();
-        Logger.d(String.valueOf(mCurrentPeriod));
         mTimer.schedule(mTimerTask, 0, 500);
     }
 

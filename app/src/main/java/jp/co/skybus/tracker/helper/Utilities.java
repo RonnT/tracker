@@ -15,10 +15,6 @@ public class Utilities {
 
     public static final int TIMESTAMP_MULTIPLIER = 1000;
 
-    public static long getCurrentTimestamp(){
-        return System.currentTimeMillis()/TIMESTAMP_MULTIPLIER;
-    }
-
     public static boolean isNetworkAvailable() {
         ConnectivityManager connectivityManager
                 = (ConnectivityManager) MyApp.getAppContext().getSystemService(Context.CONNECTIVITY_SERVICE);

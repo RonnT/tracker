@@ -9,7 +9,7 @@ import retrofit.http.Body;
 import retrofit.http.POST;
 
 /**
- * Created by Roman Titov on 18.01.2016.
+ * Created by Roman T. on 18.01.2016.
  */
 public interface ApiService {
 

@@ -16,7 +16,6 @@ public class CONST {
 
             FORBIDDEN_ERROR_CODE                = 403;
 
-
     public static final float
             FAST_PERIOD_UPDATE_SPEED            = 0.833333f;          //in meters/sec       1 m/s == 3,6 km/h
 }

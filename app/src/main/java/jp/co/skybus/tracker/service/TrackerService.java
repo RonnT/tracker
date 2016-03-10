@@ -24,11 +24,10 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import jp.co.skybus.tracker.CONST;
-import jp.co.skybus.tracker.MainActivity;
 import jp.co.skybus.tracker.MyApp;
 import jp.co.skybus.tracker.R;
+import jp.co.skybus.tracker.activity.MainActivity;
 import jp.co.skybus.tracker.api.Api;
-import jp.co.skybus.tracker.helper.Logger;
 import jp.co.skybus.tracker.helper.PrefsHelper;
 import jp.co.skybus.tracker.helper.Utilities;
 import jp.co.skybus.tracker.model.DefaultResponseWrapper;
@@ -64,8 +63,6 @@ public class TrackerService extends Service implements LocationListener, GpsStat
 
     @Override
     public void onCreate() {
-        Logger.d("Service: onCreate");
-
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         mLocationManager.addGpsStatusListener(this);
 
@@ -78,7 +75,6 @@ public class TrackerService extends Service implements LocationListener, GpsStat
     }
 
     public void startUpdateLocation() {
-        Logger.d("Tracker service: startUpdateLocation()");
         stopUpdateLocation();
 
         if (mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
@@ -130,7 +126,6 @@ public class TrackerService extends Service implements LocationListener, GpsStat
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Logger.d("Service: onStartCommand");
         startSendingTask();
         return START_STICKY;
     }
@@ -150,9 +145,7 @@ public class TrackerService extends Service implements LocationListener, GpsStat
     public void onStatusChanged(String s, int i, Bundle bundle) {}
 
     @Override
-    public void onProviderEnabled(String s) {
-
-    }
+    public void onProviderEnabled(String s) {}
 
     @Override
     public void onProviderDisabled(String s) {}
@@ -181,7 +174,6 @@ public class TrackerService extends Service implements LocationListener, GpsStat
     private void startSendingTask(){
         stopSendingTask();
         mTimerTask = new SendingTimerTask();
-        Logger.d("TrackerService: send_info_period - " + String.valueOf(mCurrentPeriod));
         mTimer.schedule(mTimerTask, mCurrentPeriod, mCurrentPeriod);
     }
 
@@ -201,7 +193,6 @@ public class TrackerService extends Service implements LocationListener, GpsStat
         Api.sendData(sendingList, new Callback<DefaultResponseWrapper>() {
             @Override
             public void success(DefaultResponseWrapper defaultResponseWrapper, Response response) {
-                Logger.d("Retrofit success");
                 if (isHasCachedData) sendCachedData();
                 if (isHasError) {
                     updateNotification(false);
@@ -211,7 +202,6 @@ public class TrackerService extends Service implements LocationListener, GpsStat
 
             @Override
             public void failure(RetrofitError error) {
-                Logger.d("Retrofit failure");
                 DefaultResponseWrapper response = (DefaultResponseWrapper) error.getBody();
                 if (response != null && response.getCode() == CONST.FORBIDDEN_ERROR_CODE) {
                         stopUpdateLocation();
@@ -296,31 +286,25 @@ public class TrackerService extends Service implements LocationListener, GpsStat
 
     @Override
     public IBinder onBind(Intent intent) {
-        Logger.d("Service: onBind");
         return binder;
     }
 
     public boolean onUnbind(Intent intent) {
-        Logger.d("Service: onUnbind");
         return true;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Logger.d("Service: onDestroy");
     }
 
     @Override
-    public void onTaskRemoved(Intent rootIntent) {
-        Logger.d("Service: onTaskRemoved");
-    }
+    public void onTaskRemoved(Intent rootIntent) {}
 
     private class SendingTimerTask extends TimerTask {
 
         @Override
         public void run() {
-            Logger.d("TrackerService: try to send");
             tryToSend(generateInfo());
         }
     }

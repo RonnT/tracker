@@ -1,4 +1,4 @@
-package jp.co.skybus.tracker;
+package jp.co.skybus.tracker.activity;
 
 import android.content.ComponentName;
 import android.content.Intent;
@@ -11,6 +11,8 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import jp.co.skybus.tracker.MyApp;
+import jp.co.skybus.tracker.R;
 import jp.co.skybus.tracker.api.Api;
 import jp.co.skybus.tracker.helper.PrefsHelper;
 import jp.co.skybus.tracker.service.TrackerService;
