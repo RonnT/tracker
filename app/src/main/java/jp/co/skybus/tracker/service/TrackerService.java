@@ -101,16 +101,17 @@ public class TrackerService extends Service implements LocationListener, GpsStat
     }
 
     private Notification getNotification(boolean isError, String pMessageIfError) {
-        String title = isError ? "Error" : "Tracking";
+        int titleId = isError ? R.string.error_notification_title : R.string.default_notification_title;
         String text = isError ? pMessageIfError : "";
         int colorId = isError ? R.color.color_icon_error : R.color.color_icon_default;
         int iconId = isError ? R.drawable.ic_gps_error : R.drawable.ic_gps;
         Notification notification;
         Notification.Builder builder = new Notification.Builder(this)
-                .setContentTitle(title)
-                .setColor(MyApp.getColorFromRes(colorId))
+                .setContentTitle(MyApp.getStringFromRes(titleId))
                 .setContentText(text)
                 .setSmallIcon(iconId);
+        if (Build.VERSION.SDK_INT >=21) builder.setColor(MyApp.getColorFromRes(colorId));
+
         if (Build.VERSION.SDK_INT < 16)
             notification = builder.getNotification();
         else

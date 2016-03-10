@@ -7,6 +7,9 @@
     <string name="save_button_title">Save</string>
     <string name="restart_button_title">Restart</string>
 
+    <string name="error_notification_title">Error</string>
+    <string name="default_notification_title">Tracking</string>
+
     <string name="network_error">No internet connection</string>
     <string name="unknown_error">Unknown error</string>
 </resources>
