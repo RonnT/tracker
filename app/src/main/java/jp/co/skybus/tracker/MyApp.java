@@ -41,4 +41,8 @@ public class MyApp extends Application {
     public static String getStringFromRes(int id) {
         return sContext != null ? sContext.getString(id) : "";
     }
+
+    public static int getColorFromRes(int pId) {
+        return getAppContext().getResources().getColor(pId);
+    }
 }

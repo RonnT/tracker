@@ -1,6 +1,7 @@
 package jp.co.skybus.tracker.service;
 
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -24,6 +25,7 @@ import java.util.TimerTask;
 
 import jp.co.skybus.tracker.CONST;
 import jp.co.skybus.tracker.MainActivity;
+import jp.co.skybus.tracker.MyApp;
 import jp.co.skybus.tracker.R;
 import jp.co.skybus.tracker.api.Api;
 import jp.co.skybus.tracker.helper.Logger;
@@ -40,6 +42,8 @@ import retrofit.client.Response;
  */
 public class TrackerService extends Service implements LocationListener, GpsStatus.Listener {
 
+    private static final int NOTIFICATION_ID = 221;
+
     private Location mCurrentLocation;
     private TrackerBinder binder = new TrackerBinder();
     private Intent mBatteryStatus;
@@ -54,6 +58,7 @@ public class TrackerService extends Service implements LocationListener, GpsStat
     private LocationManager mLocationManager;
 
     private boolean isHasCachedData;
+    private boolean isHasError;
 
     private Info mLastInfo = new Info();
 
@@ -69,15 +74,7 @@ public class TrackerService extends Service implements LocationListener, GpsStat
         TelephonyManager telephonyManager = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
         telephonyManager.getDeviceId();
         mIme = telephonyManager.getDeviceId();
-
-        Notification.Builder builder = new Notification.Builder(this)
-                .setSmallIcon(R.drawable.ic_gps);
-        Notification notification;
-        if (Build.VERSION.SDK_INT < 16)
-            notification = builder.getNotification();
-        else
-            notification = builder.build();
-        startForeground(221, notification);
+        startForeground(NOTIFICATION_ID, getNotification(false));
     }
 
     public void startUpdateLocation() {
@@ -97,6 +94,37 @@ public class TrackerService extends Service implements LocationListener, GpsStat
 
     private void stopUpdateLocation(){
         mLocationManager.removeUpdates(this);
+    }
+
+    private Notification getNotification(boolean pIsError){
+        return getNotification(pIsError, "");
+    }
+
+    private Notification getNotification(boolean isError, String pMessageIfError) {
+        String title = isError ? "Error" : "Tracking";
+        String text = isError ? pMessageIfError : "";
+        int colorId = isError ? R.color.color_icon_error : R.color.color_icon_default;
+        int iconId = isError ? R.drawable.ic_gps_error : R.drawable.ic_gps;
+        Notification notification;
+        Notification.Builder builder = new Notification.Builder(this)
+                .setContentTitle(title)
+                .setColor(MyApp.getColorFromRes(colorId))
+                .setContentText(text)
+                .setSmallIcon(iconId);
+        if (Build.VERSION.SDK_INT < 16)
+            notification = builder.getNotification();
+        else
+            notification = builder.build();
+        return notification;
+    }
+
+    private void updateNotification(boolean pIsError){
+        updateNotification(pIsError, "");
+    }
+
+    private void updateNotification (boolean pIsError, String pMessageIfError){
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.notify(NOTIFICATION_ID, getNotification(pIsError, pMessageIfError));
     }
 
     @Override
@@ -174,6 +202,10 @@ public class TrackerService extends Service implements LocationListener, GpsStat
             public void success(DefaultResponseWrapper defaultResponseWrapper, Response response) {
                 Logger.d("Retrofit success");
                 if (isHasCachedData) sendCachedData();
+                if (isHasError) {
+                    updateNotification(false);
+                    isHasError = false;
+                }
             }
 
             @Override
@@ -188,6 +220,13 @@ public class TrackerService extends Service implements LocationListener, GpsStat
                     Info.saveAll(sendingList);
                     isHasCachedData = true;
                 }
+                String errorMessage;
+                if (response != null) errorMessage = response.getMessage();
+                else if (!Utilities.isNetworkAvailable()) {
+                    errorMessage = MyApp.getStringFromRes(R.string.network_error);
+                } else errorMessage =  MyApp.getStringFromRes(R.string.unknown_error);
+                isHasError = true;
+                updateNotification(true, errorMessage);
             }
         });
     }
