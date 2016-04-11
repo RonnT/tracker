@@ -13,6 +13,6 @@ import retrofit.http.POST;
  */
 public interface ApiService {
 
-    @POST("/input")
+    @POST("/")
     void sendData(@Body List<Info> objectList, Callback<DefaultResponseWrapper> pCallback);
 }

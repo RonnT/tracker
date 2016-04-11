@@ -28,6 +28,7 @@
             android:exported="false">
             <intent-filter >
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
 
@@ -43,6 +44,9 @@
         <activity android:name=".activity.SettingsActivity"
             android:screenOrientation="portrait">
         </activity>
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="413e7489d14b1d734c8da1ac47e4441b7d5a0d70" />
     </application>
 
 </manifest>

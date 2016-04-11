@@ -6,7 +6,7 @@ package jp.co.skybus.tracker;
 public class CONST {
 
     public static final String
-            DEFAULT_SERVER_ADDRESS = "http://27.112.106.254/track";
+            DEFAULT_SERVER_ADDRESS = "http://mobex.co.jp/track";
 
     public static final int
             DEFAULT_LOCATION_CHANGE_THRESHOLD   = 1,          //in meters
