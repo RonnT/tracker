@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.Context;
 
 import com.crashlytics.android.Crashlytics;
+import com.facebook.stetho.Stetho;
 import com.j256.ormlite.android.apptools.OpenHelperManager;
 
 import io.fabric.sdk.android.Fabric;
@@ -17,6 +18,9 @@ public class MyApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        Stetho.initialize(Stetho.newInitializerBuilder(this)
+              .enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
+              .build());
         Fabric.with(this, new Crashlytics());
         sContext = getApplicationContext();
         sDatabaseHelper = OpenHelperManager.getHelper(sContext, DatabaseHelper.class);

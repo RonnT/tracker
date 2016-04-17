@@ -2,6 +2,7 @@ package jp.co.skybus.tracker.api;
 
 import android.util.Log;
 
+import com.facebook.stetho.okhttp.StethoInterceptor;
 import com.squareup.okhttp.OkHttpClient;
 
 import java.util.List;
@@ -29,6 +30,7 @@ public class Api {
         OkHttpClient client = new OkHttpClient();
         client.setReadTimeout(5, TimeUnit.SECONDS);
         client.setConnectTimeout(5, TimeUnit.SECONDS);
+        client.networkInterceptors().add(new StethoInterceptor());
 
         RestAdapter adapter = new RestAdapter.Builder()
                 .setEndpoint(pUrl)

@@ -221,7 +221,7 @@ public class TrackerService extends Service implements LocationListener, GpsStat
                             }
                         } catch (Exception e) {
                             exceptionError = error.getMessage();
-                            Crashlytics.log(exceptionError);
+                            Crashlytics.logException(e);
                         }
                         String errorMessage;
                         if (response != null) {
